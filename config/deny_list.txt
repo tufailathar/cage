@@ -1,0 +1,9 @@
+# Commands containing these substrings are hard-blocked
+rm -rf /
+mkfs
+dd of=/dev/
+format c:
+shred /dev/
+:(){ :|:& };:
+> /etc/
+chmod -R 777 /

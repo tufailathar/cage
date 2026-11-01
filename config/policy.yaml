@@ -1,0 +1,16 @@
+# Destructive tool patterns — ask user Y/N before running
+destructive_patterns:
+  - "sqlmap.*--risk=[2-9]"
+  - "sqlmap.*--dump-all"
+  - "sqlmap.*--os-shell"
+  - "sqlmap.*--sql-shell"
+  - "hydra"
+  - "medusa"
+  - "patator"
+  - "hashcat"
+  - "john "
+  - "msfconsole"
+  - "metasploit"
+  - "nmap.*--script=(vuln|exploit|brute|dos)"
+  - "masscan.*--rate=[0-9]{6,}"
+  - "wfuzz.*-w.*(rockyou|darkc0de)"

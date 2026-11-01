@@ -1,0 +1,13 @@
+engine:
+  max_turns: 90
+
+budget:
+  max_requests_per_engagement: 2000
+  max_tokens_per_engagement: 500000
+  max_hypotheses: 200
+
+health_monitor:
+  baseline_latency_multiplier: 3.0
+  error_rate_threshold: 0.40
+  sample_window: 10
+  pause_seconds: 30

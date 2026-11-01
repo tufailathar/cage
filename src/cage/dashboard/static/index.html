@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CAGE · Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg-0: #08080c; --bg-1: #0d0d14; --bg-2: #12121c; --bg-3: #18182a;
+    --border: #1e1e2e; --border-hi: #2a2a3e;
+    --text-0: #e6e6f0; --text-1: #a0a0b8; --text-2: #6a6a80;
+    --accent: #6b8fff; --think: #6b8fff; --tool: #ffb347;
+    --result: #4ade80; --finding: #f87171; --ask: #e879f9;
+    --danger: #ef4444; --warn: #f59e0b;
+    --mono: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Menlo', monospace;
+  }
+  [data-theme="light"] {
+    --bg-0: #f5f5f9; --bg-1: #ffffff; --bg-2: #fafafd; --bg-3: #eff0f5;
+    --border: #e2e3ec; --border-hi: #d0d2e0;
+    --text-0: #1a1a2e; --text-1: #4a4a6a; --text-2: #8a8aa0;
+    --accent: #4f6df5; --think: #4f6df5; --tool: #e08a1f;
+    --result: #22a55c; --finding: #d63838; --ask: #b73fc7;
+    --danger: #d63838; --warn: #d97706;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%; background: var(--bg-0); color: var(--text-0);
+    font-family: var(--mono); font-size: 13px; overflow: hidden;
+    transition: background 0.2s, color 0.2s;
+  }
+  header {
+    height: 56px; background: var(--bg-1);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 20px;
+    gap: 14px;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 600; font-size: 14px;
+  }
+  .brand-icon {
+    width: 26px; height: 26px; border-radius: 6px;
+    background: linear-gradient(135deg, var(--accent), var(--ask));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 800; color: #fff;
+  }
+  .brand-sub {
+    font-size: 10px; color: var(--text-2);
+    font-weight: 400; letter-spacing: 0.3px;
+  }
+  .spacer { flex: 1; }
+  .stat {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 11px; color: var(--text-2);
+    padding: 5px 10px; background: var(--bg-3);
+    border-radius: 6px; border: 1px solid var(--border);
+  }
+  .stat-value {
+    color: var(--text-0); font-weight: 700; font-size: 12px;
+  }
+  .stat-value.think { color: var(--think); }
+  .stat-value.tool { color: var(--tool); }
+  .stat-value.result { color: var(--result); }
+  .stat-value.finding { color: var(--finding); }
+  .status {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; color: var(--text-2);
+  }
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--danger); transition: all 0.2s;
+  }
+  .dot.on {
+    background: var(--result); box-shadow: 0 0 6px var(--result);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+  .icon-btn {
+    background: var(--bg-3); border: 1px solid var(--border);
+    color: var(--text-1); padding: 6px 12px; border-radius: 6px;
+    cursor: pointer; font-family: var(--mono); font-size: 11px;
+    transition: all 0.15s; display: flex; align-items: center; gap: 6px;
+  }
+  .icon-btn:hover {
+    border-color: var(--border-hi); color: var(--text-0);
+    background: var(--bg-2);
+  }
+  .tabs {
+    height: 48px; background: var(--bg-1);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: stretch;
+    padding: 0 20px; gap: 4px;
+  }
+  .tab {
+    display: flex; align-items: center; gap: 8px;
+    padding: 0 20px;
+    background: transparent; border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-2); font-family: var(--mono);
+    font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s;
+    letter-spacing: 0.3px;
+  }
+  .tab:hover { color: var(--text-1); background: var(--bg-2); }
+  .tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  .tab-count {
+    font-size: 10px; padding: 1px 6px;
+    background: var(--bg-3); border-radius: 8px;
+    color: var(--text-2); font-weight: 700;
+  }
+  .tab.active .tab-count {
+    background: rgba(107,143,255,0.15);
+    color: var(--accent);
+  }
+  .content {
+    height: calc(100vh - 56px - 48px);
+    position: relative;
+  }
+  .panel-view {
+    display: none;
+    height: 100%;
+    flex-direction: column;
+  }
+  .panel-view.active { display: flex; }
+  .panel-toolbar {
+    height: 44px; background: var(--bg-1);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 0 20px; gap: 10px;
+    flex-shrink: 0;
+  }
+  .panel-toolbar-title {
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--text-2);
+  }
+  .spacer-h { flex: 1; }
+  .search-bar {
+    background: var(--bg-2); border: 1px solid var(--border);
+    border-radius: 5px; padding: 6px 12px;
+    color: var(--text-0); font-family: var(--mono);
+    font-size: 11px; outline: none; width: 260px;
+  }
+  .search-bar:focus { border-color: var(--accent); }
+  .search-bar::placeholder { color: var(--text-2); }
+  .panel-scroll {
+    flex: 1; overflow-y: auto; padding: 16px 20px;
+  }
+  .panel-scroll::-webkit-scrollbar { width: 8px; }
+  .panel-scroll::-webkit-scrollbar-track { background: var(--bg-1); }
+  .panel-scroll::-webkit-scrollbar-thumb {
+    background: var(--bg-3); border-radius: 4px;
+  }
+  .panel-scroll::-webkit-scrollbar-thumb:hover { background: var(--border-hi); }
+  .entry {
+    background: var(--bg-1); border: 1px solid var(--border);
+    border-left: 3px solid var(--border-hi);
+    border-radius: 6px; padding: 12px 14px;
+    margin-bottom: 8px; animation: slideIn 0.15s ease-out;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-3px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .entry.think { border-left-color: var(--think); }
+  .entry.tool { border-left-color: var(--tool); }
+  .entry.result { border-left-color: var(--result); }
+  .entry.finding {
+    border-left-color: var(--finding);
+    background: linear-gradient(90deg, rgba(248,113,113,0.06), var(--bg-1) 50%);
+  }
+  .entry.ask { border-left-color: var(--ask); }
+  .entry.error {
+    border-left-color: var(--danger);
+    background: linear-gradient(90deg, rgba(239,68,68,0.08), var(--bg-1) 50%);
+  }
+  .entry-head {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+  }
+  .badge {
+    font-size: 9px; font-weight: 700; letter-spacing: 0.6px;
+    padding: 2px 7px; border-radius: 3px; text-transform: uppercase;
+  }
+  .badge.think { background: rgba(107,143,255,0.15); color: var(--think); }
+  .badge.tool { background: rgba(255,179,71,0.15); color: var(--tool); }
+  .badge.result { background: rgba(74,222,128,0.15); color: var(--result); }
+  .badge.finding { background: rgba(248,113,113,0.2); color: var(--finding); }
+  .badge.ask { background: rgba(232,121,249,0.15); color: var(--ask); }
+  .badge.error { background: rgba(239,68,68,0.2); color: var(--danger); }
+  .turn { font-size: 10px; color: var(--text-2); font-weight: 700; }
+  .phase {
+    font-size: 9px; color: var(--text-2);
+    padding: 2px 6px; background: var(--bg-3); border-radius: 3px;
+  }
+  .time { margin-left: auto; font-size: 10px; color: var(--text-2); }
+  .entry-body {
+    color: var(--text-1); font-size: 12px; white-space: pre-wrap;
+    word-break: break-word; line-height: 1.6;
+  }
+  .cmd {
+    color: var(--tool); background: rgba(255,179,71,0.08);
+    padding: 1px 5px; border-radius: 3px;
+  }
+  .log-view {
+    font-size: 11px; line-height: 1.6; color: var(--text-1);
+    white-space: pre-wrap; word-break: break-word;
+    font-family: var(--mono);
+  }
+  .log-line { padding: 1px 0; }
+  .log-line .ts { color: var(--text-2); margin-right: 8px; }
+  .log-line .level-INFO { color: var(--think); font-weight: 600; }
+  .log-line .level-WARNING { color: var(--warn); font-weight: 600; }
+  .log-line .level-ERROR { color: var(--danger); font-weight: 600; }
+  .log-line .level-DEBUG { color: var(--text-2); }
+  .turn-line {
+    border-top: 1px solid var(--border-hi);
+    margin: 14px 0 10px 0;
+    padding-top: 10px;
+  }
+  .turn-line:first-child {
+    border-top: none;
+    margin-top: 0;
+    padding-top: 0;
+  }
+  .empty {
+    padding: 60px 20px; text-align: center;
+    color: var(--text-2); font-size: 12px;
+  }
+  .empty-icon { font-size: 36px; margin-bottom: 12px; opacity: 0.3; }
+</style>
+</head>
+<body data-theme="dark">
+
+<header>
+  <div class="brand">
+    <div class="brand-icon">C</div>
+    <div>
+      <div>CAGE</div>
+      <div class="brand-sub">Controlled Autonomous Generation Engine</div>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <div class="stat"><span>Turn</span><span class="stat-value" id="statTurn">0</span></div>
+  <div class="stat"><span>Think</span><span class="stat-value think" id="statThink">0</span></div>
+  <div class="stat"><span>Tool</span><span class="stat-value tool" id="statTool">0</span></div>
+  <div class="stat"><span>Result</span><span class="stat-value result" id="statResult">0</span></div>
+  <div class="stat"><span>Findings</span><span class="stat-value finding" id="statFinding">0</span></div>
+  <div class="status">
+    <span class="dot" id="dot"></span>
+    <span id="statusText">disconnected</span>
+  </div>
+  <button class="icon-btn" id="themeBtn" title="Toggle theme">
+    <span id="themeIcon">☀</span>
+    <span id="themeLabel">Light</span>
+  </button>
+</header>
+
+<nav class="tabs">
+  <button class="tab active" data-tab="events">
+    <span>Live Events</span>
+    <span class="tab-count" id="tabCountEvents">0</span>
+  </button>
+  <button class="tab" data-tab="actions">
+    <span>Agent Actions</span>
+    <span class="tab-count" id="tabCountActions">0</span>
+  </button>
+  <button class="tab" data-tab="cage">
+    <span>CAGE Log</span>
+    <span class="tab-count" id="tabCountCage">0</span>
+  </button>
+</nav>
+
+<div class="content">
+
+  <div class="panel-view active" id="view-events">
+    <div class="panel-toolbar">
+      <span class="panel-toolbar-title">Live Events</span>
+      <span class="spacer-h"></span>
+      <input class="search-bar" id="eventsSearch" placeholder="Filter events...">
+    </div>
+    <div class="panel-scroll" id="eventsScroll">
+      <div id="eventsList">
+        <div class="empty" id="eventsEmpty">
+          <div class="empty-icon">⟳</div>
+          <div>Waiting for events...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel-view" id="view-actions">
+    <div class="panel-toolbar">
+      <span class="panel-toolbar-title">agent_actions.log</span>
+    </div>
+    <div class="panel-scroll">
+      <div class="log-view" id="actionsLog">
+        <div class="empty">
+          <div class="empty-icon">📄</div>
+          <div>Loading agent_actions.log...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel-view" id="view-cage">
+    <div class="panel-toolbar">
+      <span class="panel-toolbar-title">cage.log</span>
+    </div>
+    <div class="panel-scroll">
+      <div class="log-view" id="cageLog">
+        <div class="empty">
+          <div class="empty-icon">📄</div>
+          <div>Loading cage.log...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ── State ────────────────────────────────────────────────
+  const eventsList = document.getElementById('eventsList');
+  const eventsEmpty = document.getElementById('eventsEmpty');
+  const eventsScroll = document.getElementById('eventsScroll');
+  const eventsSearch = document.getElementById('eventsSearch');
+  const actionsLog = document.getElementById('actionsLog');
+  const cageLog = document.getElementById('cageLog');
+  const dot = document.getElementById('dot');
+  const statusText = document.getElementById('statusText');
+
+  let ws;
+  let events = [];
+  let counters = { turn: 0, think: 0, tool: 0, result: 0, finding: 0 };
+  let autoScrollEvents = true;
+  let currentTab = 'events';
+
+  // ── Theme toggle ─────────────────────────────────────────
+  const themeBtn = document.getElementById('themeBtn');
+  const themeIcon = document.getElementById('themeIcon');
+  const themeLabel = document.getElementById('themeLabel');
+
+  function setTheme(t) {
+    document.body.setAttribute('data-theme', t);
+    localStorage.setItem('cage-theme', t);
+    if (t === 'dark') {
+      themeIcon.textContent = '☀';
+      themeLabel.textContent = 'Light';
+    } else {
+      themeIcon.textContent = '🌙';
+      themeLabel.textContent = 'Dark';
+    }
+  }
+  setTheme(localStorage.getItem('cage-theme') || 'dark');
+  themeBtn.addEventListener('click', () => {
+    setTheme(document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+  });
+
+  // ── Tab switching ────────────────────────────────────────
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const name = tab.dataset.tab;
+      currentTab = name;
+
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+
+      document.querySelectorAll('.panel-view').forEach(p => p.classList.remove('active'));
+      document.getElementById('view-' + name).classList.add('active');
+
+      if (name === 'actions') {
+        loadLog('agent_actions', actionsLog, 'tabCountActions');
+      } else if (name === 'cage') {
+        loadLog('cage', cageLog, 'tabCountCage');
+      } else if (name === 'events') {
+        eventsScroll.scrollTop = eventsScroll.scrollHeight;
+      }
+    });
+  });
+
+  // ── Search filter ────────────────────────────────────────
+  eventsSearch.addEventListener('input', renderAllEvents);
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      e.preventDefault();
+      if (currentTab !== 'events') {
+        document.querySelector('.tab[data-tab="events"]').click();
+      }
+      eventsSearch.focus();
+    }
+    if (e.key === 'Escape') eventsSearch.blur();
+  });
+
+  // ── Auto-scroll detection ────────────────────────────────
+  eventsScroll.addEventListener('scroll', () => {
+    autoScrollEvents = eventsScroll.scrollTop + eventsScroll.clientHeight
+                       >= eventsScroll.scrollHeight - 40;
+  });
+
+  // ── Load log file ────────────────────────────────────────
+  async function loadLog(name, container, countId) {
+    try {
+      const res = await fetch('/api/log/' + name);
+      const data = await res.json();
+
+      if (data.error) {
+        container.innerHTML = `<div class="empty">
+          <div class="empty-icon">⚠</div>
+          <div>${escapeHtml(data.error)}</div>
+        </div>`;
+        document.getElementById(countId).textContent = '0';
+        return;
+      }
+
+      if (!data.exists || !data.lines || data.lines.length === 0) {
+        container.innerHTML = `<div class="empty">
+          <div class="empty-icon">📄</div>
+          <div>No log yet</div>
+        </div>`;
+        document.getElementById(countId).textContent = '0';
+        return;
+      }
+
+      let renderedCount;
+
+      if (name === 'agent_actions') {
+        // Agent Actions: count unique [Tn] turn markers
+        renderedCount = countUniqueTurns(data.lines);
+        container.innerHTML = renderActionsLog(data.lines);
+      } else {
+        // CAGE Log: count all log-level markers ([INFO], [WARNING], [ERROR], [DEBUG])
+        renderedCount = countLogLevels(data.lines);
+        container.innerHTML = data.lines.map(formatLogLine).join('');
+      }
+
+      document.getElementById(countId).textContent = renderedCount;
+
+      const scroll = container.closest('.panel-scroll');
+      if (scroll) scroll.scrollTop = scroll.scrollHeight;
+    } catch (e) {
+      container.innerHTML = `<div class="empty">
+        <div class="empty-icon">⚠</div>
+        <div>Error: ${escapeHtml(e.message)}</div>
+      </div>`;
+      document.getElementById(countId).textContent = '0';
+    }
+  }
+
+  // ── Counting helpers ─────────────────────────────────────
+
+  // Agent Actions: count unique [Tn] turn markers
+  function countUniqueTurns(lines) {
+    const seen = new Set();
+    for (const line of lines) {
+      const matches = line.matchAll(/\[T(\d+)\]/g);
+      for (const m of matches) {
+        seen.add(m[1]);
+      }
+    }
+    return seen.size;
+  }
+
+  // CAGE Log: count all [INFO]/[WARNING]/[ERROR]/[DEBUG] level markers
+  function countLogLevels(lines) {
+    let count = 0;
+    for (const line of lines) {
+      const matches = line.matchAll(/\[(INFO|WARNING|ERROR|DEBUG)\]/g);
+      for (const _ of matches) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  // ── Helpers ──────────────────────────────────────────────
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function formatLogLine(line) {
+    let esc = escapeHtml(line);
+    esc = esc.replace(/\[INFO\]/g, '<span class="level-INFO">[INFO]</span>');
+    esc = esc.replace(/\[WARNING\]/g, '<span class="level-WARNING">[WARNING]</span>');
+    esc = esc.replace(/\[ERROR\]/g, '<span class="level-ERROR">[ERROR]</span>');
+    esc = esc.replace(/\[DEBUG\]/g, '<span class="level-DEBUG">[DEBUG]</span>');
+    esc = esc.replace(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d+)/, '<span class="ts">$1</span>');
+    esc = esc.replace(/^(\[\d{2}:\d{2}:\d{2}\])/, '<span class="ts">$1</span>');
+    return '<div class="log-line">' + esc + '</div>';
+  }
+
+  function renderActionsLog(lines) {
+    let html = '';
+    let currentTurn = null;
+    let currentLines = [];
+
+    const flushTurn = () => {
+      if (currentLines.length === 0) return;
+      const linesHtml = currentLines.map(line => {
+        let esc = escapeHtml(line);
+        esc = esc.replace(/\[INFO\]/g, '<span class="level-INFO">[INFO]</span>');
+        esc = esc.replace(/\[WARNING\]/g, '<span class="level-WARNING">[WARNING]</span>');
+        esc = esc.replace(/\[ERROR\]/g, '<span class="level-ERROR">[ERROR]</span>');
+        esc = esc.replace(/\[DEBUG\]/g, '<span class="level-DEBUG">[DEBUG]</span>');
+        esc = esc.replace(/^(\[\d{2}:\d{2}:\d{2}\])/, '<span class="ts">$1</span>');
+        esc = esc.replace(/(\[T\d+\])/g, '<span style="color:var(--accent);font-weight:700">$1</span>');
+        return '<div class="log-line">' + esc + '</div>';
+      }).join('');
+
+      const hasBorder = html.length > 0;
+      const cls = hasBorder ? 'turn-line' : 'turn-line first';
+      html += `<div class="${cls}">${linesHtml}</div>`;
+
+      currentLines = [];
+    };
+
+    for (const line of lines) {
+      const m = line.match(/\[T(\d+)\]/);
+      if (m) {
+        const thisTurn = parseInt(m[1], 10);
+        if (currentTurn !== null && thisTurn !== currentTurn) {
+          flushTurn();
+        }
+        currentTurn = thisTurn;
+      }
+      currentLines.push(line);
+    }
+    flushTurn();
+
+    return html || '<div class="empty"><div class="empty-icon">📄</div><div>Empty log</div></div>';
+  }
+
+  // ── WebSocket ────────────────────────────────────────────
+  function connect() {
+    ws = new WebSocket('ws://' + location.host + '/ws');
+
+    ws.onopen = () => {
+      dot.classList.add('on');
+      statusText.textContent = 'connected';
+    };
+
+    ws.onclose = () => {
+      dot.classList.remove('on');
+      statusText.textContent = 'disconnected';
+      setTimeout(connect, 2000);
+    };
+
+    ws.onmessage = (ev) => {
+      const m = JSON.parse(ev.data);
+      if (m.type === '_HISTORY_DONE') {
+        eventsScroll.scrollTop = eventsScroll.scrollHeight;
+        return;
+      }
+      handleEvent(m);
+    };
+  }
+
+  // ── Event handling ───────────────────────────────────────
+  function handleEvent(msg) {
+    const p = msg.payload || {};
+    const ts = msg.ts ? new Date(msg.ts * 1000) : new Date();
+
+    switch (msg.type) {
+      case 'THOUGHT':
+        counters.think++;
+        counters.turn = Math.max(counters.turn, p.turn || 0);
+        addEvent('think', 'THINK', p.turn, p.phase, p.thought || '', ts);
+        break;
+
+      case 'TOOL_CALL':
+        counters.tool++;
+        const cmd = p.args && p.args.command ? p.args.command : JSON.stringify(p.args, null, 2);
+        addEvent('tool', 'TOOL', p.turn, '', 'Command:\n' + cmd, ts);
+        break;
+
+      case 'TOOL_RESULT':
+        counters.result++;
+        const resultStr = JSON.stringify(p.result, null, 2);
+        const isErr = p.result && (p.result.status === 'error' || p.result.status === 'blocked');
+        addEvent(isErr ? 'error' : 'result', isErr ? 'ERROR' : 'RESULT',
+                 p.turn, '',
+                 `Tool: ${p.tool} (${(p.elapsed || 0).toFixed(2)}s)\n\n${resultStr}`,
+                 ts);
+        break;
+
+      case 'FINDING':
+        counters.finding++;
+        addEvent('finding', 'FINDING', p.turn || '', '',
+                 JSON.stringify(p, null, 2), ts);
+        break;
+
+      case 'ASK_USER':
+        addEvent('ask', 'ASK', '', '',
+                 p.question + (p.reason ? '\n\nReason: ' + p.reason : ''), ts);
+        break;
+
+      case 'PROMPT_OUT':
+        break;
+    }
+
+    updateStats();
+  }
+
+  function addEvent(cls, label, turn, phase, content, ts) {
+    events.push({ cls, label, turn, phase, content, ts });
+    renderEvent(events[events.length - 1], true);
+  }
+
+  function renderEvent(evt, append) {
+    if (!matchesEventFilter(evt)) return;
+
+    const el = document.createElement('div');
+    el.className = 'entry ' + evt.cls;
+
+    const timeStr = evt.ts.toTimeString().slice(0, 8);
+    const badgeClass = {
+      'THINK': 'think', 'TOOL': 'tool', 'RESULT': 'result',
+      'ERROR': 'error', 'FINDING': 'finding', 'ASK': 'ask'
+    }[evt.label] || '';
+
+    const head = `<div class="entry-head">
+      <span class="badge ${badgeClass}">${escapeHtml(evt.label)}</span>
+      ${evt.turn ? `<span class="turn">T${evt.turn}</span>` : ''}
+      ${evt.phase ? `<span class="phase">${escapeHtml(evt.phase)}</span>` : ''}
+      <span class="time">${timeStr}</span>
+    </div>`;
+
+    let bodyHtml = escapeHtml(evt.content);
+    bodyHtml = bodyHtml.replace(/(curl\s+[^\n]+)/g, '<span class="cmd">$1</span>');
+
+    el.innerHTML = head + `<div class="entry-body">${bodyHtml}</div>`;
+
+    if (append) {
+      eventsList.appendChild(el);
+      eventsEmpty.style.display = 'none';
+      if (autoScrollEvents && currentTab === 'events') {
+        eventsScroll.scrollTop = eventsScroll.scrollHeight;
+      }
+    } else {
+      eventsList.appendChild(el);
+    }
+  }
+
+  function matchesEventFilter(evt) {
+    const q = eventsSearch.value.trim().toLowerCase();
+    if (!q) return true;
+    return evt.content.toLowerCase().includes(q)
+        || evt.label.toLowerCase().includes(q);
+  }
+
+  function renderAllEvents() {
+    eventsList.innerHTML = '';
+    if (events.length === 0) {
+      eventsEmpty.style.display = '';
+      eventsList.appendChild(eventsEmpty);
+      return;
+    }
+    events.forEach(e => renderEvent(e, false));
+  }
+
+  function updateStats() {
+    document.getElementById('statTurn').textContent = counters.turn;
+    document.getElementById('statThink').textContent = counters.think;
+    document.getElementById('statTool').textContent = counters.tool;
+    document.getElementById('statResult').textContent = counters.result;
+    document.getElementById('statFinding').textContent = counters.finding;
+    document.getElementById('tabCountEvents').textContent = events.length;
+  }
+
+  // ── Auto-refresh logs every 10s ──────────────────────────
+  setInterval(() => {
+    if (currentTab === 'actions') {
+      loadLog('agent_actions', actionsLog, 'tabCountActions');
+    } else if (currentTab === 'cage') {
+      loadLog('cage', cageLog, 'tabCountCage');
+    }
+  }, 10000);
+
+  // ── Boot ─────────────────────────────────────────────────
+  connect();
+</script>
+</body>
+</html>
